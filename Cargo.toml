@@ -1,0 +1,19 @@
+[package]
+name = "mdbook-svgdx"
+version = "0.1.0"
+description = "mdbook preprocessor to convert svgdx fenced code blocks into inline SVG images"
+authors = ["Ben Bass <benbass@codedstructure.net>"]
+repository = "https://github.com/codedstructure/svgdx-mdbook"
+keywords = ["mdbook", "svg", "svgdx", "diagrams"]
+license = "MIT"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5", features = ["string"] }
+mdbook = "0.4.40"
+# The versions of pulldown-cmark / pulldown-cmark-to-cmark are tied to the mdbook library.
+pulldown-cmark = "0.10"
+pulldown-cmark-to-cmark = "14.0"
+semver = "1.0"
+serde_json = "1.0"
+svgdx = { version = "0.12.0", default-features = false }
