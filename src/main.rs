@@ -13,7 +13,8 @@ fn make_app() -> Command {
         .version(format!(
             "{} (svgdx {})",
             env!("CARGO_PKG_VERSION"),
-            svgdx::VERSION))
+            svgdx::VERSION
+        ))
         .subcommand(
             Command::new("supports")
                 .arg(Arg::new("renderer").required(true))
