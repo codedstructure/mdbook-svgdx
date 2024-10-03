@@ -10,7 +10,10 @@ use mdbook_svgdx::SvgdxProc;
 fn make_app() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .version(env!("CARGO_PKG_VERSION"))
+        .version(format!(
+            "{} (svgdx {})",
+            env!("CARGO_PKG_VERSION"),
+            svgdx::VERSION))
         .subcommand(
             Command::new("supports")
                 .arg(Arg::new("renderer").required(true))
