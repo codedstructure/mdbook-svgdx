@@ -24,6 +24,7 @@ use mdbook::errors::Error;
 use mdbook::preprocess::{Preprocessor, PreprocessorContext};
 use mdbook::BookItem;
 
+use pulldown_cmark::CodeBlockKind;
 use pulldown_cmark::{
     CodeBlockKind::Fenced,
     CowStr::Borrowed,
@@ -60,18 +61,44 @@ impl Preprocessor for SvgdxProc {
 fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
     let md_events = mdbook::utils::new_cmark_parser(&chapter.content, false);
 
-    let mut in_block = false;
+    let mut in_block = None;
     let mut events = Vec::new();
     for ev in md_events {
-        match (&mut in_block, &ev) {
-            (false, Start(Tag::CodeBlock(Fenced(Borrowed("svgdx"))))) => {
-                events.push(Start(Tag::Paragraph));
-                in_block = true;
+        match (&mut in_block, ev.clone()) {
+            (None, Start(Tag::CodeBlock(Fenced(Borrowed(block_type)))))
+                if block_type == "svgdx" || block_type.starts_with("svgdx-") =>
+            {
+                // surround the whole thing in a div with appropriate class so
+                // we can style it. Note deliberate empty lines here to get
+                // markdown to ignore the fact we've just opened a <div> Html block
+                events.push(Html(format!("\n\n<div class='{}'>\n\n", block_type).into()));
+                in_block = Some(block_type.to_string());
             }
-            (true, Text(content)) => events.push(Html(svgdx_handler(content).into())),
-            (true, End(TagEnd::CodeBlock)) => {
-                in_block = false;
-                events.push(End(TagEnd::Paragraph))
+            (Some(block_type), Text(content)) => {
+                if block_type == "svgdx-xml" {
+                    // Special case this fence type to display the XML input
+                    // prior to the rendered SVG output.
+                    events.push(Start(Tag::CodeBlock(CodeBlockKind::Fenced("xml".into()))));
+                    events.push(Text(content.clone()));
+                    events.push(End(TagEnd::CodeBlock));
+                }
+                events.push(Start(Tag::Paragraph));
+                // Need to avoid blank lines in the rendered SVG, as they can cause
+                // markdown to resume 'normal' md processing, especially when e.g.
+                // indentation can cause an implicit code block to be started.
+                // See https://talk.commonmark.org/t/inline-html-breaks-when-using-indentation/3317
+                // and https://spec.commonmark.org/0.31.2/#html-blocks
+                let svg_output = svgdx_handler(&content)
+                    .lines()
+                    .filter(|line| !line.trim().is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                events.push(Html(svg_output.into()));
+                events.push(End(TagEnd::Paragraph));
+            }
+            (Some(_), End(TagEnd::CodeBlock)) => {
+                events.push(Html("</div>".into()));
+                in_block = None;
             }
             _ => events.push(ev),
         }

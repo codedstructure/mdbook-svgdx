@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: indentation and newlines in rendered SVG could break markdown processing
+
+- Added: `svgdx-xml` fenced code block type to display both XML and SVG output
+
+- Added: wrap rendered svgdx blocks in divs with fenced code block type for CSS styling
+
 ## [0.2.0 - 2024-10-03]
 
 - Changed: updated to svgdx 0.13.0
