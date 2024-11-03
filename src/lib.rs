@@ -33,6 +33,8 @@ use pulldown_cmark::{
 };
 use pulldown_cmark_to_cmark::cmark;
 
+use svgdx::TransformConfig;
+
 pub struct SvgdxProc;
 
 impl Preprocessor for SvgdxProc {
@@ -45,11 +47,42 @@ impl Preprocessor for SvgdxProc {
         renderer != "not-supported"
     }
 
-    fn run(&self, _: &PreprocessorContext, book: Book) -> Result<Book, Error> {
+    #[rustfmt::skip]
+    fn run(&self, ctx: &PreprocessorContext, book: Book) -> Result<Book, Error> {
         let mut book = book;
+
+        let mut config = TransformConfig::default();
+        if let Some(cfg) = ctx.config.get_preprocessor(self.name()) {
+            for (key, value) in cfg.iter() {
+                // Messy, but keeps quoted strings quoted and non-string values (e.g. numbers)
+                // as strings; goal is we can parse() everything without caring about types.
+                let v = if let Some(v) = value.as_str() { v } else { &value.to_string() };
+
+                // Note: not every config key is included here, only those which make sense in an
+                // mdbook context - generally those which have a visible effect on the output.
+                match key.as_str() {
+                    "scale" => { config.scale = v.parse()?; }
+                    "border" => { config.border = v.parse()?; }
+                    "add-auto-styles" => { config.add_auto_styles = v.parse()?; }
+                    "background" => { config.background = v.parse()?; }
+                    "seed" => { config.seed = v.parse()?; }
+                    "loop-limit" => { config.loop_limit = v.parse()?; }
+                    "var-limit" => { config.var_limit = v.parse()?; }
+                    "font-size" => { config.font_size = v.parse()?; }
+                    "font-family" => { config.font_family = v.parse()?; }
+                    "theme" => { config.theme = v.parse()?; }
+                    // Command is a valid mdbook preprocessor config key, but we don't use it
+                    "command" => {}
+                    _ => Err(Error::msg(format!("Unknown config key: {}", key)))?,
+                }
+            }
+        }
+        // TODO: add this after next svgdx release
+        // config.use_local_styles = true;
+
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if let Ok(processed) = codeblock_parser(chapter) {
+                if let Ok(processed) = codeblock_parser(chapter, &config) {
                     chapter.content = processed;
                 }
             }
@@ -58,7 +91,10 @@ impl Preprocessor for SvgdxProc {
     }
 }
 
-fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
+fn codeblock_parser(
+    chapter: &mut Chapter,
+    config: &TransformConfig,
+) -> Result<String, std::fmt::Error> {
     let md_events = mdbook::utils::new_cmark_parser(&chapter.content, false);
 
     let mut in_block = None;
@@ -88,7 +124,7 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
                 // indentation can cause an implicit code block to be started.
                 // See https://talk.commonmark.org/t/inline-html-breaks-when-using-indentation/3317
                 // and https://spec.commonmark.org/0.31.2/#html-blocks
-                let svg_output = svgdx_handler(&content)
+                let svg_output = svgdx_handler(&content, config)
                     .lines()
                     .filter(|line| !line.trim().is_empty())
                     .collect::<Vec<_>>()
@@ -108,11 +144,11 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
     Ok(buf)
 }
 
-fn svgdx_handler(s: &str) -> String {
-    svgdx::transform_string(s.to_string()).unwrap_or_else(|e| {
+fn svgdx_handler(s: &str, cfg: &TransformConfig) -> String {
+    svgdx::transform_str(s.to_string(), cfg).unwrap_or_else(|e| {
         format!(
             r#"<div style="color: red; border: 5px double red; padding: 1em;">{}</div>"#,
-            e.replace('\n', "<br/>")
+            e.to_string().replace('\n', "<br/>")
         )
     })
 }

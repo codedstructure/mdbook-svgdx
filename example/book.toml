@@ -1,0 +1,11 @@
+[book]
+authors = ["Ben Bass"]
+language = "en"
+multilingual = false
+src = "src"
+title = "mdbook-svgdx example"
+
+[preprocessor.svgdx]
+theme = "light"
+scale = 2
+command = "cargo run --manifest-path /Users/ben/projects/codedstructure/mdbook-svgdx/Cargo.toml --quiet"
