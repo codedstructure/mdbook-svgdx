@@ -1,6 +1,6 @@
 [package]
 name = "mdbook-svgdx"
-version = "0.2.0"
+version = "0.3.0"
 description = "mdbook preprocessor to convert svgdx fenced code blocks into inline SVG images"
 authors = ["Ben Bass <benbass@codedstructure.net>"]
 repository = "https://github.com/codedstructure/mdbook-svgdx"
@@ -16,4 +16,4 @@ pulldown-cmark = "0.10"
 pulldown-cmark-to-cmark = "14.0"
 semver = "1.0"
 serde_json = "1.0"
-svgdx = { version = "0.13.0", default-features = false }
+svgdx = { version = "0.14.0", default-features = false }
