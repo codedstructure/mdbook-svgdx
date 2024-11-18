@@ -71,7 +71,7 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
                 // surround the whole thing in a div with appropriate class so
                 // we can style it. Note deliberate empty lines here to get
                 // markdown to ignore the fact we've just opened a <div> Html block
-                events.push(Html(format!("\n\n<div class='{}'>\n\n", block_type).into()));
+                events.push(Html(format!("\n\n<div class='{}'>\n", block_type).into()));
                 in_block = Some(block_type.to_string());
             }
             (Some(block_type), Text(content)) => {
@@ -109,10 +109,52 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
 }
 
 fn svgdx_handler(s: &str) -> String {
-    svgdx::transform_string(s.to_string()).unwrap_or_else(|e| {
+    svgdx::transform_str_default(s.to_string()).unwrap_or_else(|e| {
         format!(
             r#"<div style="color: red; border: 5px double red; padding: 1em;">{}</div>"#,
-            e.replace('\n', "<br/>")
+            e.to_string().replace('\n', "<br/>")
         )
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn process_basic_svgdx() {
+        let content = r##"
+Some **markdown** text
+
+```svgdx
+<svg>
+  <rect wh="20 5"/>
+</svg>
+```
+"##;
+
+        let expected = r##"Some **markdown** text
+
+<div class='svgdx'>
+
+
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="30mm" height="15mm" viewBox="-5 -5 30 15">
+  <style>
+  <![CDATA[
+    svg { background: none; }
+    rect, circle, ellipse, polygon { stroke-width: 0.5; fill: white; stroke: black; }
+    line, polyline, path { stroke-width: 0.5; fill: none; stroke: black; }
+  ]]>
+  </style>
+  <rect width="20" height="5"/>
+</svg></div>"##;
+        let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
+        let result = codeblock_parser(&mut chapter).unwrap();
+        assert_eq!(result, expected);
+
+
+        let mut z = Book::new(); //vec![BookItem::Chapter(chapter)]);
+        z.push_item(chapter);
+
+    }
 }
