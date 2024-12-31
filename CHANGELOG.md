@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0 2024-12-31]
+
 - Changed: updated to svgdx 0.16.0
+
+- Changed: style changes, including `max-width:100%` on SVG images and use of the
+  `use-local-styles` option of svgdx.
 
 - Added: `xml-svgdx` in addition to `svgdx-xml`, as well as `-inline` variants of each
   to support additional display formats for diagrams and corresponding svgdx source.

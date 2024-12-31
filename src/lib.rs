@@ -60,11 +60,11 @@ impl Preprocessor for SvgdxProc {
 }
 
 fn inject_xml(events: &mut Vec<Event>, content: &str) {
-    events.push(Html(format!("\n\n<div>\n").into()));
+    events.push(Html("\n\n<div>\n".into()));
     events.push(Start(Tag::CodeBlock(CodeBlockKind::Fenced("xml".into()))));
     events.push(Text(content.to_owned().into()));
     events.push(End(TagEnd::CodeBlock));
-    events.push(Html(format!("\n</div>\n").into()));
+    events.push(Html("\n</div>\n".into()));
 }
 
 fn inject_svgdx(events: &mut Vec<Event>, content: &str) {
@@ -74,7 +74,7 @@ fn inject_svgdx(events: &mut Vec<Event>, content: &str) {
     // indentation can cause an implicit code block to be started.
     // See https://talk.commonmark.org/t/inline-html-breaks-when-using-indentation/3317
     // and https://spec.commonmark.org/0.31.2/#html-blocks
-    let svg_output = svgdx_handler(&content)
+    let svg_output = svgdx_handler(content)
         .lines()
         .filter(|line| !line.trim().is_empty())
         .collect::<Vec<_>>()
