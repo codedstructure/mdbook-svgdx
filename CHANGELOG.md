@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed: updated to svgdx 0.16.0
+
+- Added: `xml-svgdx` in addition to `svgdx-xml`, as well as `-inline` variants of each
+  to support additional display formats for diagrams and corresponding svgdx source.
+
 ## [0.3.0 - 2024-11-18]
 
 - Changed: updated to svgdx 0.14.0
