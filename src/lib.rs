@@ -60,7 +60,9 @@ impl Preprocessor for SvgdxProc {
 }
 
 fn inject_xml(events: &mut Vec<Event>, content: &str) {
-    events.push(Html("\n\n<div>\n".into()));
+    events.push(Html(
+        "\n\n<div style='overflow-x: auto; font-size: 0.9em;'>\n".into(),
+    ));
     events.push(Start(Tag::CodeBlock(CodeBlockKind::Fenced("xml".into()))));
     events.push(Text(content.to_owned().into()));
     events.push(End(TagEnd::CodeBlock));
@@ -99,11 +101,8 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
                 // surround the whole thing in a div with appropriate class so
                 // we can style it. Note deliberate empty lines here to get
                 // markdown to ignore the fact we've just opened a <div> Html block
-                let style = if block_type.ends_with("-inline") {
-                    "style='display: flex; justify-content: space-around;' "
-                } else {
-                    ""
-                };
+                let style =
+                    "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
                 events.push(Html(
                     format!("\n\n<div {}class='{}'>\n", style, block_type).into(),
                 ));
@@ -136,7 +135,7 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
 
 fn svgdx_handler(s: &str) -> String {
     let cfg = svgdx::TransformConfig {
-        svg_style: Some("max-width: 100%; height: auto;".to_string()),
+        svg_style: Some("min-width: 25%; max-width: 100%; height: auto;".to_string()),
         use_local_styles: true,
         scale: 1.5,
         ..Default::default()
@@ -169,17 +168,19 @@ Some **markdown** text
 
         let expected1 = r##"Some **markdown** text
 
-<div class='svgdx'>
+<div style="##;
+        let expected2 = r##" class='svgdx'>
 
 
 <svg "##;
-        let expected2 = r##"
+        let expected3 = r##"
   <rect width="20" height="5"/>
 </svg></div>"##;
         let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
         let result = codeblock_parser(&mut chapter).unwrap();
         assert_contains!(result, expected1);
         assert_contains!(result, expected2);
+        assert_contains!(result, expected3);
 
         let mut z = Book::new();
         z.push_item(chapter);
