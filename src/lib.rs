@@ -59,6 +59,71 @@ impl Preprocessor for SvgdxProc {
     }
 }
 
+fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
+    let md_events = mdbook::utils::new_cmark_parser(&chapter.content, false);
+
+    let mut in_block = None;
+    let mut events = Vec::new();
+    let mut block_content = Vec::new();
+    for ev in md_events {
+        match (&mut in_block, ev.clone()) {
+            (None, Start(Tag::CodeBlock(Fenced(Borrowed(block_type)))))
+                if matches!(
+                    block_type,
+                    "svgdx" | "svgdx-xml" | "xml-svgdx" | "svgdx-xml-inline" | "xml-svgdx-inline"
+                ) =>
+            {
+                // surround the whole thing in a div with appropriate class so
+                // we can style it. Note deliberate empty lines here to get
+                // markdown to ignore the fact we've just opened a <div> Html block
+                let style =
+                    "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
+                events.push(Html(
+                    format!("\n\n<div {}class='{}'>\n", style, block_type).into(),
+                ));
+                in_block = Some(block_type.to_string());
+            }
+            (Some(_), Text(content)) => {
+                // content of code block isn't necessarily in a single Text event;
+                // CRLF sources in particular seem to generate a Text event per line.
+                block_content.push(content.clone());
+            }
+            (Some(block_type), End(TagEnd::CodeBlock)) => {
+                handle_content(&block_content.concat(), block_type, &mut events);
+                events.push(Html("</div>".into()));
+                block_content.clear();
+                in_block = None;
+            }
+            _ => events.push(ev),
+        }
+    }
+    if let Some(block_type) = in_block {
+        // The CommonMark spec allows for non-terminated code blocks, treating
+        // the end of the document as an implicit end-of-fence.
+        // https://spec.commonmark.org/0.31.2/#fenced-code-blocks
+        handle_content(&block_content.concat(), &block_type, &mut events);
+        events.push(Html("</div>".into()));
+    }
+
+    let mut buf = String::new();
+    cmark(&mut events.iter(), &mut buf)?;
+    Ok(buf)
+}
+
+fn handle_content(content: &str, block_type: &str, events: &mut Vec<Event>) {
+    if block_type.starts_with("xml-svgdx") {
+        // Special case this fence type to display the XML input
+        // prior to the rendered SVG output.
+        inject_xml(events, content);
+    }
+    inject_svgdx(events, content);
+    if block_type.starts_with("svgdx-xml") {
+        // Special case this fence type to display the XML input
+        // prior to the rendered SVG output.
+        inject_xml(events, content);
+    }
+}
+
 fn inject_xml(events: &mut Vec<Event>, content: &str) {
     events.push(Html(
         "\n\n<div style='overflow-x: auto; font-size: 0.9em;'>\n".into(),
@@ -83,54 +148,6 @@ fn inject_svgdx(events: &mut Vec<Event>, content: &str) {
         .join("\n");
     events.push(Html(svg_output.into()));
     events.push(End(TagEnd::Paragraph));
-}
-
-fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
-    let md_events = mdbook::utils::new_cmark_parser(&chapter.content, false);
-
-    let mut in_block = None;
-    let mut events = Vec::new();
-    for ev in md_events {
-        match (&mut in_block, ev.clone()) {
-            (None, Start(Tag::CodeBlock(Fenced(Borrowed(block_type)))))
-                if matches!(
-                    block_type,
-                    "svgdx" | "svgdx-xml" | "xml-svgdx" | "svgdx-xml-inline" | "xml-svgdx-inline"
-                ) =>
-            {
-                // surround the whole thing in a div with appropriate class so
-                // we can style it. Note deliberate empty lines here to get
-                // markdown to ignore the fact we've just opened a <div> Html block
-                let style =
-                    "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
-                events.push(Html(
-                    format!("\n\n<div {}class='{}'>\n", style, block_type).into(),
-                ));
-                in_block = Some(block_type.to_string());
-            }
-            (Some(block_type), Text(content)) => {
-                if block_type.starts_with("xml-svgdx") {
-                    // Special case this fence type to display the XML input
-                    // prior to the rendered SVG output.
-                    inject_xml(&mut events, &content);
-                }
-                inject_svgdx(&mut events, &content);
-                if block_type.starts_with("svgdx-xml") {
-                    // Special case this fence type to display the XML input
-                    // prior to the rendered SVG output.
-                    inject_xml(&mut events, &content);
-                }
-            }
-            (Some(_), End(TagEnd::CodeBlock)) => {
-                events.push(Html("</div>".into()));
-                in_block = None;
-            }
-            _ => events.push(ev),
-        }
-    }
-    let mut buf = String::new();
-    cmark(&mut events.iter(), &mut buf)?;
-    Ok(buf)
 }
 
 fn svgdx_handler(s: &str) -> String {
@@ -175,6 +192,42 @@ Some **markdown** text
 <svg "##;
         let expected3 = r##"
   <rect width="20" height="5"/>
+</svg></div>"##;
+        let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
+        let result = codeblock_parser(&mut chapter).unwrap();
+        assert_contains!(result, expected1);
+        assert_contains!(result, expected2);
+        assert_contains!(result, expected3);
+
+        let mut z = Book::new();
+        z.push_item(chapter);
+    }
+
+    #[test]
+    fn process_with_crlf() {
+        // crlf-separated text seems to be parsed into multiple Text events;
+        // check the fenced code block is still processed as a single unit.
+        let content = vec![
+            "Some **markdown** text",
+            "",
+            "```svgdx",
+            "<svg>",
+            r#"  <rect wh="20 5"/>"#,
+            r#"  <rect xy="^|h" wh="20 5"/>"#,
+            "</svg>",
+            "```",
+        ]
+        .join("\r\n");
+
+        let expected1 = r##"Some **markdown** text
+
+<div style="##;
+        let expected2 = r##" class='svgdx'>
+
+
+<svg "##;
+        let expected3 = r##"
+  <rect x="20" y="0" width="20" height="5"/>
 </svg></div>"##;
         let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
         let result = codeblock_parser(&mut chapter).unwrap();

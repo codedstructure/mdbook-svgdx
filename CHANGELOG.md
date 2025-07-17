@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: handle fenced code block split across Text events (#1)
+
 ## [0.8.0 2025-06-29]
 
 - Changed: updated to svgdx 0.21.0
