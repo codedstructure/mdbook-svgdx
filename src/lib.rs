@@ -79,7 +79,7 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
                 let style =
                     "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
                 events.push(Html(
-                    format!("\n\n<div {}class='{}'>\n", style, block_type).into(),
+                    format!("\n\n<div {style}class='{block_type}'>\n").into(),
                 ));
                 in_block = Some(block_type.to_string());
             }
@@ -207,16 +207,14 @@ Some **markdown** text
     fn process_with_crlf() {
         // crlf-separated text seems to be parsed into multiple Text events;
         // check the fenced code block is still processed as a single unit.
-        let content = vec![
-            "Some **markdown** text",
+        let content = ["Some **markdown** text",
             "",
             "```svgdx",
             "<svg>",
             r#"  <rect wh="20 5"/>"#,
             r#"  <rect xy="^|h" wh="20 5"/>"#,
             "</svg>",
-            "```",
-        ]
+            "```"]
         .join("\r\n");
 
         let expected1 = r##"Some **markdown** text
