@@ -33,6 +33,7 @@ use pulldown_cmark::{
     Tag, TagEnd,
 };
 use pulldown_cmark_to_cmark::cmark;
+use svgdx::AutoStyleMode;
 
 pub struct SvgdxProc;
 
@@ -153,7 +154,7 @@ fn inject_svgdx(events: &mut Vec<Event>, content: &str) {
 fn svgdx_handler(s: &str) -> String {
     let cfg = svgdx::TransformConfig {
         svg_style: Some("min-width: 25%; max-width: 100%; height: auto;".to_string()),
-        use_local_styles: true,
+        auto_style_mode: AutoStyleMode::Inline,
         scale: 1.5,
         ..Default::default()
     };
@@ -190,9 +191,7 @@ Some **markdown** text
 
 
 <svg "##;
-        let expected3 = r##"
-  <rect width="20" height="5"/>
-</svg></div>"##;
+        let expected3 = r##"<rect width="20" height="5""##;
         let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
         let result = codeblock_parser(&mut chapter).unwrap();
         assert_contains!(result, expected1);
@@ -207,14 +206,16 @@ Some **markdown** text
     fn process_with_crlf() {
         // crlf-separated text seems to be parsed into multiple Text events;
         // check the fenced code block is still processed as a single unit.
-        let content = ["Some **markdown** text",
+        let content = [
+            "Some **markdown** text",
             "",
             "```svgdx",
             "<svg>",
             r#"  <rect wh="20 5"/>"#,
             r#"  <rect xy="^|h" wh="20 5"/>"#,
             "</svg>",
-            "```"]
+            "```",
+        ]
         .join("\r\n");
 
         let expected1 = r##"Some **markdown** text
@@ -224,9 +225,7 @@ Some **markdown** text
 
 
 <svg "##;
-        let expected3 = r##"
-  <rect x="20" y="0" width="20" height="5"/>
-</svg></div>"##;
+        let expected3 = r##"<rect x="20" y="0" width="20" height="5""##;
         let mut chapter = Chapter::new("test", content.to_owned(), ".", Vec::new());
         let result = codeblock_parser(&mut chapter).unwrap();
         assert_contains!(result, expected1);
