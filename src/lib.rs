@@ -19,10 +19,11 @@
 //! this is heavily based on, see the
 //! [preprocessor developer docs](https://rust-lang.github.io/mdBook/for_developers/preprocessors.html)
 
-use mdbook::book::{Book, Chapter};
-use mdbook::errors::Error;
-use mdbook::preprocess::{Preprocessor, PreprocessorContext};
-use mdbook::BookItem;
+use mdbook_markdown::MarkdownOptions;
+use mdbook_preprocessor::book::BookItem;
+use mdbook_preprocessor::book::{Book, Chapter};
+use mdbook_preprocessor::errors::{Error, Result};
+use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
 
 use pulldown_cmark::CodeBlockKind;
 use pulldown_cmark::{
@@ -42,9 +43,9 @@ impl Preprocessor for SvgdxProc {
         "svgdx"
     }
 
-    fn supports_renderer(&self, renderer: &str) -> bool {
+    fn supports_renderer(&self, renderer: &str) -> Result<bool> {
         // This processor is supported by both html and markdown renderers
-        renderer != "not-supported"
+        Ok(renderer != "not-supported")
     }
 
     fn run(&self, _: &PreprocessorContext, book: Book) -> Result<Book, Error> {
@@ -60,8 +61,9 @@ impl Preprocessor for SvgdxProc {
     }
 }
 
-fn codeblock_parser(chapter: &mut Chapter) -> Result<String, std::fmt::Error> {
-    let md_events = mdbook::utils::new_cmark_parser(&chapter.content, false);
+fn codeblock_parser(chapter: &mut Chapter) -> Result<String> {
+    let md_events =
+        mdbook_markdown::new_cmark_parser(&chapter.content, &MarkdownOptions::default());
 
     let mut in_block = None;
     let mut events = Vec::new();
