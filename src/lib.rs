@@ -51,10 +51,10 @@ impl Preprocessor for SvgdxProc {
     fn run(&self, _: &PreprocessorContext, book: Book) -> Result<Book, Error> {
         let mut book = book;
         book.for_each_mut(|item| {
-            if let BookItem::Chapter(chapter) = item {
-                if let Ok(processed) = codeblock_parser(chapter) {
-                    chapter.content = processed;
-                }
+            if let BookItem::Chapter(chapter) = item
+                && let Ok(processed) = codeblock_parser(chapter)
+            {
+                chapter.content = processed;
             }
         });
         Ok(book)
@@ -79,8 +79,7 @@ fn codeblock_parser(chapter: &mut Chapter) -> Result<String> {
                 // surround the whole thing in a div with appropriate class so
                 // we can style it. Note deliberate empty lines here to get
                 // markdown to ignore the fact we've just opened a <div> Html block
-                let style =
-                    "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
+                let style = "style='display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center;' ";
                 events.push(Html(
                     format!("\n\n<div {style}class='{block_type}'>\n").into(),
                 ));
