@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0 2026-03-07]
+
+- Changed: updated to svgdx 0.28.0
+- Changed: updated to Rust edition 2024 and MSRV 1.88
+
 ## [0.14.0 2026-02-06]
 
 - Changed: updated to svgdx 0.27.0
