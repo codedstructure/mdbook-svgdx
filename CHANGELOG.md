@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0 2026-05-17]
+
 - Added: support for running svgdx as a subprocess rather than via the included
   library. Set the `MDBOOK_SVGDX_BIN` environment variable to the path of an
   `svgdx` executable to use this.
