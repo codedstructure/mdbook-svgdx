@@ -7,13 +7,24 @@ use std::{env, io};
 
 use mdbook_svgdx::SvgdxProc;
 
+#[cfg(feature = "svgdx-builtin")]
+fn svgdx_version_label() -> String {
+    svgdx::VERSION.into()
+}
+
+#[cfg(not(feature = "svgdx-builtin"))]
+fn svgdx_version_label() -> String {
+    use mdbook_svgdx::SVGDX_BIN_ENV_VAR;
+    format!("via {SVGDX_BIN_ENV_VAR}")
+}
+
 fn make_app() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(format!(
             "{} (svgdx {}; mdbook {})",
             env!("CARGO_PKG_VERSION"),
-            svgdx::VERSION,
+            svgdx_version_label(),
             mdbook_preprocessor::MDBOOK_VERSION
         ))
         .subcommand(
