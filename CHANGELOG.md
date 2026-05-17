@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0 2026-05-17]
+
+- Changed: updated to svgdx 0.29.0
+
 ## [0.16.0 2026-05-17]
 
 - Added: support for running svgdx as a subprocess rather than via the included
